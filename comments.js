@@ -1,40 +1,48 @@
 // Create web server
 
-// Import modules
+// Import module
 const express = require('express');
 const router = express.Router();
-const { Comment } = require('../models/Comment');
+const mongoose = require('mongoose');
+const Comment = require('../models/comment');
 
-// ==================================
-//             Comments
-// ==================================
+// Connect to MongoDB
+mongoose.connect('mongodb://localhost:27017/mean-blog', { useNewUrlParser: true });
 
-// Create a comment
-router.post('/create', (req, res) => {
-    const comment = new Comment(req.body);
+// Connect to MongoDB
+mongoose.connection.on('connected', () => {
+    console.log('Connected to MongoDB');
+});
 
-    comment.save((err, comment) => {
-        if (err) return res.status(400).json({ success: false, err });
+// Connect to MongoDB
+mongoose.connection.on('error', (err) => {
+    console.log('Error connecting to MongoDB: ' + err);
+});
 
-        Comment.find({ _id: comment._id })
-            .populate('writer')
-            .exec((err, result) => {
-                if (err) return res.status(400).json({ success: false, err });
-
-                return res.status(200).json({ success: true, result });
-            });
+// Get all comments
+router.get('/', (req, res) => {
+    Comment.find((err, comments) => {
+        if (err) {
+            res.send('Error getting comments: ' + err);
+        }
+        else {
+            res.json(comments);
+        }
     });
 });
 
-// Get comments
-router.post('/getComments', (req, res) => {
-    Comment.find({ postId: req.body.postId })
-        .populate('writer')
-        .exec((err, comments) => {
-            if (err) return res.status(400).json({ success: false, err });
-
-            return res.status(200).json({ success: true, comments });
-        });
+// Get a comment by id
+router.get('/:id', (req, res) => {
+    Comment.findById(req.params.id, (err, comment) => {
+        if (err) {
+            res.send('Error getting comment: ' + err);
+        }
+        else {
+            res.json(comment);
+        }
+    });
 });
 
-module.exports = router;
+// Save a comment
+router.post('/', (req, res) => {
+    let newComment = new Comment({
